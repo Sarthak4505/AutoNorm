@@ -1,0 +1,105 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AutoNorm | Automatic Database Normalization</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+<nav class="navbar">
+    <a class="logo" href="/">AutoNorm<span>.</span></a>
+    <span class="nav-label">DBMS Course Project</span>
+</nav>
+
+<main class="container">
+
+    <div class="tag">DATABASE NORMALIZATION WORKSPACE</div>
+    <h1>Design cleaner databases<span>.</span></h1>
+
+    <p class="subtitle">
+        Enter a relation and functional dependencies to identify keys,
+        check normal forms, and preview decomposed tables.
+    </p>
+
+    <!-- Success and error messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="{{ 'error' if category == 'error' else 'success' }}"
+                     role="alert">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    {% if error %}
+        <div class="error">{{ error }}</div>
+    {% endif %}
+
+    <div class="db-banner {% if db_status.ok %}db-ok{% else %}db-warning{% endif %}">
+        <strong>MySQL status:</strong>
+
+        {% if db_status.ok %}
+            Connected to {{ db_status.database }} on port {{ db_status.port }}.
+        {% else %}
+            Not connected. Analysis still works; MySQL is optional for this step.
+        {% endif %}
+    </div>
+
+    <form action="{{ url_for('analyze') }}" method="POST" class="form-card">
+
+        <label for="relation_name">Relation name</label>
+        <input
+            id="relation_name"
+            name="relation_name"
+            placeholder="ENROLLMENT"
+            required
+        >
+
+        <label for="attributes">Attributes (comma-separated)</label>
+        <textarea
+            id="attributes"
+            name="attributes"
+            rows="3"
+            placeholder="StudentID, CourseID, StudentName, CourseName"
+            required
+        ></textarea>
+
+        <label for="fds">Functional dependencies (one per line)</label>
+        <textarea
+            id="fds"
+            name="fds"
+            rows="5"
+            placeholder="StudentID -> StudentName&#10;CourseID -> CourseName"
+            required
+        ></textarea>
+
+        <label for="target_form">Decomposition target</label>
+        <select id="target_form" name="target_form">
+            <option value="3NF">3NF</option>
+            <option value="BCNF">BCNF</option>
+        </select>
+
+        <label class="check-row">
+            <input type="checkbox" name="is_1nf" value="yes">
+            <span>I confirm that every cell contains one atomic value (1NF).</span>
+        </label>
+
+        <button type="submit">Analyze and Normalize →</button>
+
+    </form>
+
+    <p class="note">
+        Use attribute names without spaces. Example: <code>A, B -> C</code>.
+    </p>
+
+</main>
+
+<footer>AutoNorm · Analyze · Normalize · Generate</footer>
+
+</body>
+</html>

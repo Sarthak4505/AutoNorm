@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>AutoNorm | Results</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+<nav class="navbar">
+    <a class="logo" href="/">AutoNorm<span>.</span></a>
+    <a href="{{ url_for('home') }}">New analysis</a>
+</nav>
+
+<main class="container">
+
+    <div class="tag">ANALYSIS COMPLETED</div>
+    <h1>{{ relation_name }}</h1>
+
+    <p class="subtitle">
+        Functional dependency analysis, candidate keys, normal forms,
+        decomposition, and SQL preview.
+    </p>
+
+    <!-- RELATION DETAILS -->
+    <section class="form-card">
+        <h2>Attributes</h2>
+
+        <div class="chips">
+            {% for a in attributes %}
+                <span class="chip">{{ a }}</span>
+            {% endfor %}
+        </div>
+
+        <h2>Functional Dependencies</h2>
+
+        <ul>
+            {% for fd in functional_dependencies %}
+                <li><code>{{ fd }}</code></li>
+            {% endfor %}
+        </ul>
+
+        <h2>Candidate Keys</h2>
+
+        <div class="chips">
+            {% for key in candidate_keys %}
+                <span class="chip key-chip">
+                    {{ key | join(" + ") }}
+                </span>
+            {% endfor %}
+        </div>
+
+        <h2>Attribute Classification</h2>
+
+        <p>
+            <strong>Prime Attributes:</strong>
+            {{ normal_form_results.prime_attributes | join(", ") or "None" }}
+        </p>
+
+        <p>
+            <strong>Non-prime Attributes:</strong>
+            {{ normal_form_results.non_prime_attributes | join(", ") or "None" }}
+        </p>
+    </section>
+
+
+    <!-- STEP-BY-STEP DEPENDENCY ANALYSIS -->
+    <h2 class="section-heading">
+        Step-by-Step Dependency Analysis
+    </h2>
+
+    <p class="note">
+        Understand how functional dependencies determine attribute closures,
+        candidate keys, and the minimal cover.
+    </p>
+
+
+    <!-- ATTRIBUTE CLOSURE ANALYSIS -->
+    <section class="form-card">
+        <h2>1. Attribute Closure Analysis</h2>
+
+        <p>
+            Attribute closure finds all attributes that can be derived
+            from a given attribute set using the supplied functional
+            dependencies.
+        </p>
+
+        {% if closure_analysis %}
+
+            {% for analysis in closure_analysis %}
+
+                <section class="form-card normal-card">
+
+                    <h3>
+                        Closure of
+                        { {{ analysis.attributes | join(", ") }} }+
+                    </h3>
+
+                    {% for step in analysis.steps %}
+
+                        <div class="form-card">
+
+                            <div class="status-row">
+                                <h3>
+                                    Step {{ step.step }}:
+                                    {{ step.title }}
+                                </h3>
+                            </div>
+
+                            <p>
+                                <strong>Closure Before:</strong>
+                                { {{ step.before | join(", ") }} }
+                            </p>
+
+                            <p>
+                                <strong>Functional Dependency Applied:</strong>
+                                <code>{{ step.fd }}</code>
+                            </p>
+
+                            <p>
+                                <strong>New Attributes Added:</strong>
+                                {{ step.added | join(", ") or "None" }}
+                            </p>
+
+                            <p>
+                                <strong>Closure After:</strong>
+                                { {{ step.after | join(", ") }} }
+                            </p>
+
+                            <p>
+                                <strong>Explanation:</strong>
+                                {{ step.reason }}
+                            </p>
+
+                        </div>
+
+                    {% endfor %}
+
+                    <h3>Final Closure</h3>
+
+                    <div class="chips">
+                        {% for a in analysis.final_closure %}
+                            <span class="chip">{{ a }}</span>
+                        {% endfor %}
+                    </div>
+
+                    <p>
+                        <strong>Is Superkey?</strong>
+
+                        {% if analysis.is_superkey %}
+                            <span class="status-good">Yes</span>
+                        {% else %}
+                            <span class="status-bad">No</span>
+                        {% endif %}
+                    </p>
+
+                    {% if analysis.is_superkey %}
+                        <p>
+                            The closure contains all attributes of the
+                            relation. Therefore, this attribute set is
+                            a superkey.
+                        </p>
+                    {% else %}
+                        <p>
+                            The closure does not contain all attributes
+                            of the relation, so this set is not a superkey.
+                        </p>
+                    {% endif %}
+
+                </section>
+
+            {% endfor %}
+
+        {% else %}
+
+            <p>
+                No attribute closure analysis is available.
+                Check that app.py passes closure_analysis to this template.
+            </p>
+
+        {% endif %}
+    </section>
+
+
+    <!-- MINIMAL COVER ANALYSIS -->
+    <section class="form-card">
+        <h2>2. Minimal Cover Analysis</h2>
+
+        <p>
+            A minimal cover is an equivalent set of functional dependencies
+            with single-attribute right-hand sides, without unnecessary
+            determinant attributes or redundant dependencies.
+        </p>
+
+        {% if minimal_cover_display %}
+
+            <h3>Minimal Cover Result</h3>
+
+            <ul>
+                {% for fd in minimal_cover_display %}
+                    <li>
+                        <code>
+                            {{ fd.left | join(", ") }}
+                            &rarr;
+                            {{ fd.right | join(", ") }}
+                        </code>
+                    </li>
+                {% endfor %}
+            </ul>
+
+            <p class="note">
+                This displays the computed minimal cover.
+                A detailed history of extraneous-attribute removal
+                and redundant-FD removal is a separate enhancement.
+            </p>
+
+        {% else %}
+
+            <p>
+                No minimal cover is available. Check that app.py passes
+                minimal_cover_display to this template.
+            </p>
+
+        {% endif %}
+    </section>
+
+
+    <!-- LOSSLESS JOIN VALIDATION -->
+    <h2 class="section-heading">Lossless Join Validation</h2>
+
+    <section class="form-card">
+
+        <div class="status-row">
+            <h2>Decomposition Check</h2>
+
+            {% if lossless_join %}
+                <span class="status-good">PASS</span>
+            {% else %}
+                <span class="status-bad">FAIL</span>
+            {% endif %}
+        </div>
+
+        {% if lossless_join %}
+            <p>
+                The decomposition is lossless under the supplied
+                functional dependencies.
+            </p>
+        {% else %}
+            <p>
+                The decomposition failed the lossless join check.
+            </p>
+        {% endif %}
+
+    </section>
+
+
+    <!-- DEPENDENCY PRESERVATION -->
+    <h2 class="section-heading">
+        Dependency Preservation Validation
+    </h2>
+
+    <section class="form-card">
+
+        <div class="status-row">
+            <h2>Functional Dependency Check</h2>
+
+            {% if dependency_preserved %}
+                <span class="status-good">PASS</span>
+            {% else %}
+                <span class="status-bad">FAIL</span>
+            {% endif %}
+        </div>
+
+        {% if dependency_preserved %}
+            <p>
+                The decomposition preserves the original functional
+                dependencies.
+            </p>
+        {% else %}
+            <p>
+                The decomposition does not preserve all original
+                functional dependencies.
+            </p>
+        {% endif %}
+
+    </section>
+
+
+    <!-- NORMAL FORM RESULTS -->
+    <h2 class="section-heading">Normal Form Results</h2>
+
+    <p class="note">
+        The 1NF checkbox is a user confirmation, not an inspection
+        of stored data.
+    </p>
+
+    {% for name in ["1NF", "2NF", "3NF", "BCNF"] %}
+
+        {% set result = normal_form_results[name] %}
+
+        <section class="form-card normal-card">
+
+            <div class="status-row">
+                <h2>{{ name }}</h2>
+
+                {% if result.satisfied %}
+                    <span class="status-good">Satisfied</span>
+                {% else %}
+                    <span class="status-bad">
+                        Violation / not confirmed
+                    </span>
+                {% endif %}
+            </div>
+
+            {% if result.satisfied %}
+
+                <p>No violation detected for this check.</p>
+
+            {% elif result.violations %}
+
+                <ul>
+                    {% for v in result.violations %}
+                        <li>
+                            <strong>Determinant:</strong>
+                            {{ v.determinant | join(", ") or "Empty set" }}
+
+                            <br>
+
+                            <strong>Dependent Attributes:</strong>
+                            {{ v.attributes | join(", ") }}
+
+                            <br>
+
+                            <strong>Reason:</strong>
+                            {{ v.reason }}
+                        </li>
+                    {% endfor %}
+                </ul>
+
+            {% else %}
+
+                <p>
+                    Confirm 1NF before interpreting higher normal forms.
+                </p>
+
+            {% endif %}
+
+        </section>
+
+    {% endfor %}
+
+
+    <!-- DECOMPOSED RELATIONS -->
+    <h2 class="section-heading">
+        Generated Relations — {{ target_form }}
+    </h2>
+
+    <p class="note">
+        This is a schema preview. Existing records are not copied
+        into the new tables.
+    </p>
+
+    <div class="relation-grid">
+
+        {% for rel in decomposed_relations %}
+
+            <section class="form-card relation-card">
+
+                <h3>Relation {{ loop.index }}</h3>
+
+                <div class="chips">
+                    {% for a in rel %}
+                        <span class="chip">{{ a }}</span>
+                    {% endfor %}
+                </div>
+
+            </section>
+
+        {% endfor %}
+
+    </div>
+
+
+    <!-- SQL PREVIEW -->
+    <section class="form-card">
+
+        <div class="status-row">
+            <h2>SQL Preview</h2>
+
+            <button
+                type="button"
+                class="secondary-button"
+                onclick="copySql()"
+            >
+                Copy SQL
+            </button>
+        </div>
+
+        <textarea id="sql" rows="10" readonly>{{ generated_sql }}</textarea>
+
+        <p class="note">
+            Review the generated SQL before creating tables in MySQL.
+        </p>
+
+    </section>
+
+
+    <!-- CREATE TABLES IN MYSQL -->
+    <section class="form-card">
+
+        <h2>Create Tables in MySQL</h2>
+
+        <p>
+            This action creates the generated tables in your configured
+            MySQL database. It does not copy existing records.
+        </p>
+
+        <p class="note">
+            Existing tables will not be overwritten. If a generated table
+            name already exists, creation will be rejected.
+        </p>
+
+        <form
+            method="POST"
+            action="{{ url_for('create_tables') }}"
+            onsubmit="return confirm('Create these tables in MySQL? Check the SQL preview first.');"
+        >
+
+            <input
+                type="hidden"
+                name="relation_name"
+                value="{{ relation_name }}"
+            >
+
+            <input
+                type="hidden"
+                name="attributes"
+                value="{{ attributes | join(', ') }}"
+            >
+
+            <input
+                type="hidden"
+                name="fds"
+                value="{{ functional_dependencies | join('\n') }}"
+            >
+
+            <input
+                type="hidden"
+                name="is_1nf"
+                value="{{ 'yes' if is_1nf else 'no' }}"
+            >
+
+            <input
+                type="hidden"
+                name="target_form"
+                value="{{ target_form }}"
+            >
+
+            <button type="submit" class="button-link">
+                Create Tables in MySQL
+            </button>
+
+        </form>
+
+    </section>
+
+
+    <!-- DATABASE STATUS -->
+    <div class="db-banner {% if db_status.ok %}db-ok{% else %}db-warning{% endif %}">
+
+        <strong>MySQL Status:</strong>
+
+        {% if db_status.ok %}
+            Connected to {{ db_status.database }}
+            on port {{ db_status.port }}.
+        {% else %}
+            Not connected; analysis still works.
+        {% endif %}
+
+    </div>
+
+
+    <a class="button-link" href="{{ url_for('home') }}">
+        Analyze Another Relation
+    </a>
+
+</main>
+
+<footer>AutoNorm · Analyze · Normalize · Generate</footer>
+
+<script>
+function copySql() {
+    const el = document.getElementById("sql");
+
+    el.select();
+    el.setSelectionRange(0, 999999);
+
+    navigator.clipboard.writeText(el.value)
+        .then(() => alert("SQL copied."))
+        .catch(() => alert("Select and copy the SQL manually."));
+}
+</script>
+
+</body>
+</html>
